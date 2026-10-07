@@ -108,6 +108,11 @@
   input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; }
   .num { position: relative; flex: 1; min-width: 70px; }
   .num input { padding-right: 34px; }
+  .nospin input::-webkit-inner-spin-button, .nospin input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .nospin input { -moz-appearance: textfield; padding-right: 30px; }
+  #cutStyleRow .seg { min-width: 0; }
+  #cutStyleRow .seg button { padding: 2px 4px; }
+  #cutStyleRow .seg svg { width: 18px; flex: 0 1 auto; min-width: 0; }
   .num em { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--faint); font-size: 12px; pointer-events: none; }
   .x { color: var(--faint); }
   .hint { color: var(--mute); font-size: 12px; }
@@ -376,7 +381,10 @@
         <button data-v="dotted" title="Dotted"><svg viewBox="0 0 24 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8h21" stroke-dasharray="0 4"/></svg></button>
         <button data-v="solid" title="Solid"><svg viewBox="0 0 24 16" stroke="currentColor" stroke-width="2"><path d="M1 8h22"/></svg></button>
       </div>
-      <span class="num" style="max-width:84px;min-width:70px"><input type="number" id="cutWidth" value="0.2" step="0.05" min="0.05" title="Thickness"><em>mm</em></span></div></div>
+      <span class="num nospin" style="flex:0 0 76px"><input type="number" id="cutWidth" value="0.2" step="0.05" min="0.05" title="Thickness"><em>mm</em></span></div></div>
+    <div class="f" id="cutAlphaRow"><span data-t>Opacity</span><div class="ctl" style="flex-wrap:nowrap">
+      <input type="range" id="cutAlpha" min="5" max="100" step="5" value="100" style="flex:1;accent-color:var(--accent)">
+      <span id="cutAlphaVal" style="width:40px;text-align:right;color:var(--mute)">100%</span></div></div>
     <div class="f"><span data-t>Corner radius</span><div class="ctl"><span class="num"><input type="number" id="radius" value="0" step="0.5" min="0"><em>mm</em></span></div></div>
     <div class="f"><span data-t>Background</span><div class="ctl">
       <label class="check"><input type="checkbox" id="bgOn"></label><input type="color" id="bg" value="#ffe066">
@@ -445,7 +453,7 @@ const hist = { stack: [], i: -1, busy: false }; // undo/redo snapshots of read()
 let curTpl = ''; // template that Save overwrites
 let lastSize = ''; // refit the view when paper size changes
 const MAX = 10000; // ponytail: hard cap so a typo range doesn't hang the tab
-const ids = ['paper','pw','ph','mt','ml','lw','lh','gx','gy','pad','reps','wrapmm','radius','cutColor','cutWidth','bgOn','bg','bleed','reg','sLen','sThick','sInset',
+const ids = ['paper','pw','ph','mt','ml','lw','lh','gx','gy','pad','reps','wrapmm','radius','cutColor','cutWidth','cutAlpha','bgOn','bg','bleed','reg','sLen','sThick','sInset',
   'from','to','list','tpl','tplB','mirror','header','step','phase','offX','offY','scaleP','wireD','overlap','copies','skip','code','codeTpl','csize','font','fs','fit','bold','italic','color'];
 
 // ---- i18n: English text in the HTML is the key (or data-t="key" for long blocks) ----
@@ -465,7 +473,7 @@ const TH = {
   'Left': 'ซ้าย', 'Right': 'ขวา', 'Top': 'บน', 'Bottom': 'ล่าง', 'Only': 'โค้ดล้วน', 'Code size': 'ขนาดโค้ด',
   'Text style': 'รูปแบบข้อความ', 'Font': 'Font', 'Shrink to fit': 'ย่อให้พอดี', 'Style': 'สไตล์', 'Horizontal': 'แนวนอน', 'Vertical': 'แนวตั้ง', 'Rotation': 'หมุน',
   'Die-cut &amp; marks': 'Die-cut และ Reg marks', 'Cut line': 'เส้นตัด', 'Screen': 'บนจอ', 'Print': 'พิมพ์', 'Off': 'ปิด',
-  'Line style': 'รูปแบบเส้น', 'Corner radius': 'มุมโค้ง', 'Background': 'สีพื้น', 'bleed': 'bleed', 'Reg marks': 'Reg marks', 'Crosshair · print shop': 'กากบาท · ร้านพิมพ์',
+  'Line style': 'รูปแบบเส้น', 'Opacity': 'ความทึบ', 'Corner radius': 'มุมโค้ง', 'Background': 'สีพื้น', 'bleed': 'bleed', 'Reg marks': 'Reg marks', 'Crosshair · print shop': 'กากบาท · ร้านพิมพ์',
   'Mark length': 'ความยาว mark', 'Thickness': 'ความหนา', 'Inset': 'ระยะจากขอบ',
   'Must match Silhouette Studio → Registration Marks exactly.': 'ต้องตั้งให้ตรงกับ Silhouette Studio → Registration Marks ทุกค่า',
   'Apply die-cut defaults': 'ใช้ค่ามาตรฐาน die-cut', 'Die-cut spacing guide': 'คู่มือระยะ die-cut', 'Silhouette Cameo 4 workflow': 'ขั้นตอน Silhouette Cameo 4',
@@ -597,6 +605,9 @@ function read() {
   for (const id of ids) { const el = $(id); s[id] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? +el.value : el.value; }
   return Object.assign(s, segs);
 }
+// '#rrggbb' + opacity % -> rgba() (rgba prints reliably; color-mix is newer)
+function hexA(hex, pct) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${pct / 100})`; }
+console.assert(hexA('#ff8000', 50) === 'rgba(255,128,0,0.5)');
 function esc(x) { return x.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
 
 function textBox(lines, w, h, s) {
@@ -740,7 +751,8 @@ function render() {
   document.querySelectorAll('.m-flag').forEach(e => e.hidden = s.mode !== 'flag');
   $('codeOpts').hidden = s.code === 'none';
   $('silOpts').hidden = s.reg !== 'silhouette';
-  $('cutStyleRow').hidden = s.cut === 'none';
+  $('cutStyleRow').hidden = $('cutAlphaRow').hidden = s.cut === 'none';
+  $('cutAlphaVal').textContent = s.cutAlpha + '%';
   $('src-range').hidden = s.src !== 'range';
   $('src-list').hidden = s.src !== 'list';
   document.querySelectorAll('.m-wire').forEach(e => e.hidden = s.mode === 'normal');
@@ -775,7 +787,7 @@ function render() {
   badCodes = 0;
   let html = '';
   for (let p = 0; p * L.per < Math.max(items.length, 1); p++) {
-    html += `<div class="page" style="width:${L.pw}mm;height:${L.ph}mm;${font};--cutc:${s.cutColor};--cuts:${s.cutStyle};--cutw:${s.cutWidth}mm"><div class="cal" style="transform:translate(${s.offX}mm,${s.offY}mm) scale(${s.scaleP / 100})">${reg}`;
+    html += `<div class="page" style="width:${L.pw}mm;height:${L.ph}mm;${font};--cutc:${hexA(s.cutColor, s.cutAlpha)};--cuts:${s.cutStyle};--cutw:${s.cutWidth}mm"><div class="cal" style="transform:translate(${s.offX}mm,${s.offY}mm) scale(${s.scaleP / 100})">${reg}`;
     for (let i = 0; i < L.per; i++) {
       const v = items[p * L.per + i];
       if (v == null) continue;
