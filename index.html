@@ -55,11 +55,11 @@
 
   /* ---- top bar ---- */
   .top { position: relative; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 3; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .brand { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; white-space: nowrap; }
   .brand svg { width: 28px; height: 28px; }
   .stats { flex: 1; display: flex; gap: 6px; justify-content: center; min-width: 0; overflow: hidden; }
   @media (max-width: 1100px) { .stats .chip + .chip { display: none; } }
-  @media (max-width: 900px) { .menu .btn span { display: none; } }
+  @media (max-width: 900px) { .menu .btn span, #newBtn span { display: none; } }
   .chip { padding: 3px 10px; border-radius: 99px; background: var(--bg); color: var(--mute); white-space: nowrap; }
   .chip b { color: var(--ink); font-weight: 600; }
   .actions { display: flex; align-items: center; gap: 8px; }
@@ -205,14 +205,15 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand">
+  <a class="brand" href="./" title="Reload">
     <svg viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#f59e0b"/><rect x="6" y="9" width="16" height="10" rx="2" fill="#fff"/><path d="M9 13h10M9 16h6" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round"/></svg>
     Label Maker
-  </div>
+  </a>
   <div class="stats" id="info"></div>
   <div class="actions">
     <button class="btn icon" id="themeBtn" title="Light / Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path class="moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg></button>
     <div class="seg small" id="langSeg"><button data-v="en" class="on">EN</button><button data-v="th">TH</button></div>
+    <button class="btn" id="newBtn" title="Reset all settings to default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M12 11v6M9 14h6"/></svg><span data-t>New</span></button>
     <details class="menu"><summary class="btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span data-t>Templates</span></summary>
       <div class="menu-pop">
@@ -484,7 +485,7 @@ const TH = {
   'invalid barcode data': 'ข้อมูล barcode ไม่ถูกต้อง', 'Gap is smaller than 2× bleed — bleed of neighbours will overlap': 'ระยะห่างน้อยกว่า 2× bleed — สีพื้นของ label ข้างกันจะทับกัน',
   'Labels overlap the reg marks — increase the margin': 'Label ทับ reg marks — เพิ่มขอบกระดาษ',
   'One label per line': '1 บรรทัด = 1 label',
-  'Rename': 'เปลี่ยนชื่อ', 'Renamed': 'เปลี่ยนชื่อแล้ว', 'Fold guide': 'เส้นนำพับ', mirrorLbl: 'ด้าน B จัดชิดกลับด้าน (ซ้าย ↔ ขวา)', 'Center': 'กลาง', '+ Edges': '+ ขอบ',
+  'New': 'ใหม่', 'New label · Ctrl+Z to undo': 'เริ่มใหม่แล้ว · Ctrl+Z เพื่อย้อนกลับ', 'Rename': 'เปลี่ยนชื่อ', 'Renamed': 'เปลี่ยนชื่อแล้ว', 'Fold guide': 'เส้นนำพับ', mirrorLbl: 'ด้าน B จัดชิดกลับด้าน (ซ้าย ↔ ขวา)', 'Center': 'กลาง', '+ Edges': '+ ขอบ',
   'Copy share link': 'คัดลอกลิงก์แชร์', 'Anyone with the link opens these settings': 'ใครเปิดลิงก์จะได้การตั้งค่านี้', 'Link copied': 'คัดลอกลิงก์แล้ว',
   'Printer offset': 'ชดเชยเครื่องพิมพ์', 'Printer scale': 'สเกลเครื่องพิมพ์',
   hintCal: 'พิมพ์แผ่นทดสอบ วัดด้วยไม้บรรทัด แล้วปรับ offset / scale จน label ตรงตำแหน่ง (ไฟล์เส้นไดคัทไม่ถูกเลื่อน)',
@@ -822,6 +823,7 @@ addEventListener('resize', fitView);
 
 // ---- wiring ----
 $('langSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; lang = b.dataset.v; applyLang(); renderTpls(); render(); });
+const DEFAULTS = read(); // the HTML's own values, captured before any saved config is applied
 {
   const saved = loadLast();
   applyConfig(saved);
@@ -933,6 +935,10 @@ function quickSave() {
   o[curTpl] = read(); setTpls(o); toast(`${t('Saved')} · ${curTpl}`);
 }
 $('tplQuick').onclick = quickSave;
+$('newBtn').onclick = () => { // undoable, so no confirm
+  curTpl = ''; applyConfig(DEFAULTS); lastSize = ''; render(); renderTpls();
+  toast(t('New label · Ctrl+Z to undo'));
+};
 addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !$('dlg').open) { e.preventDefault(); quickSave(); } });
 // share link: settings packed into the URL hash (never sent to a server)
 function b64(str) { const u = new TextEncoder().encode(str); let r = ''; for (const x of u) r += String.fromCharCode(x); return btoa(r).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
