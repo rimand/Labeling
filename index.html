@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Label Maker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1' y='4' width='14' height='8' rx='2' fill='%23f59e0b'/></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Sarabun:ital,wght@0,400;0,700;1,400;1,700&family=Prompt:ital,wght@0,400;0,700;1,400;1,700&family=Kanit:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Sans+Thai:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<style id="pagestyle"></style>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #fff; --line: #e3e6eb; --line2: #d3d8df;
+    --ink: #1d2330; --mute: #6b7382; --faint: #9aa1ad;
+    --accent: #f59e0b; --accent-ink: #8a5300; --accent-soft: #fff4e0;
+    --danger: #d92d20; --danger-soft: #fef0ee; --danger-line: #f5c2bc; --r: 8px;
+    --field: #fff; --raised: #fff; --hover: #fafbfc; --line3: #b8bfca; --focus: #fcd38a;
+    --canvas: #e9ebef; --dot: #c9ced6; --thumb: #cfd4dc; --thumb-h: #a9b0bb; --shadow: #0002;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #1f2229; --panel: #16181d; --line: #2a2e36; --line2: #363b45;
+    --ink: #e6e8ec; --mute: #9aa1ad; --faint: #6b7382;
+    --accent-ink: #fbbf4a; --accent-soft: #3a2a0c;
+    --danger: #ff8a7a; --danger-soft: #3a1a17; --danger-line: #6b2a22;
+    --field: #1f2229; --raised: #2a2e36; --hover: #23262d; --line3: #4a505c; --focus: #7a4f0a;
+    --canvas: #0f1114; --dot: #262a31; --thumb: #353a44; --thumb-h: #4a505c; --shadow: #0008;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; font: 13px/1.45 "IBM Plex Sans Thai", system-ui, sans-serif; color: var(--ink); background: var(--bg); display: grid; grid-template-rows: 56px 1fr; overflow: hidden; }
+  input, select, textarea, button { font: inherit; color: inherit; }
+
+  /* ---- scrollbars ---- */
+  * { scrollbar-width: thin; scrollbar-color: var(--thumb) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--thumb); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--thumb-h); }
+
+  /* ---- top bar ---- */
+  .top { position: relative; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 3; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .brand svg { width: 28px; height: 28px; }
+  .stats { flex: 1; display: flex; gap: 6px; justify-content: center; min-width: 0; overflow: hidden; }
+  @media (max-width: 1100px) { .stats .chip + .chip { display: none; } }
+  @media (max-width: 900px) { .menu .btn span { display: none; } }
+  .chip { padding: 3px 10px; border-radius: 99px; background: var(--bg); color: var(--mute); white-space: nowrap; }
+  .chip b { color: var(--ink); font-weight: 600; }
+  .actions { display: flex; align-items: center; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: var(--r); border: 1px solid var(--line2); background: var(--panel); cursor: pointer; font-weight: 500; white-space: nowrap; }
+  .btn:hover { border-color: var(--line3); background: var(--hover); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #e48f00; }
+  .btn.block { width: 100%; justify-content: center; margin-top: 4px; }
+  .btn svg { width: 16px; height: 16px; }
+  .btn.icon { width: 34px; padding: 0; justify-content: center; }
+  :root[data-theme="dark"] .moon, :root:not([data-theme="dark"]) .sun { display: none; }
+  .menu { position: relative; }
+  .menu summary { list-style: none; }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu-pop { position: absolute; right: 0; top: 40px; width: 260px; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px #0002; padding: 6px; }
+  .menu-pop button { display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0; background: none; border-radius: 6px; cursor: pointer; }
+  .menu-pop button:hover { background: var(--bg); }
+  .menu-pop small { display: block; color: var(--mute); }
+  .menu-pop kbd { float: right; font: 11px "Roboto Mono", monospace; color: var(--faint); border: 1px solid var(--line2); border-radius: 4px; padding: 0 4px; }
+  .tpl-row.cur button:first-child { color: var(--accent-ink); font-weight: 600; }
+  .menu-pop hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
+  .tpl-row { display: flex; align-items: center; }
+  .tpl-row button:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tpl-row button + button { width: 30px; flex: none; text-align: center; color: var(--faint); }
+  .tpl-row button + button:hover { color: var(--danger); }
+  .tpl-empty { padding: 8px 10px; color: var(--faint); }
+
+  /* ---- sidebar ---- */
+  .body { display: flex; min-height: 0; }
+  aside { width: 360px; flex: none; overflow-y: auto; overflow-x: hidden; background: var(--panel); border-right: 1px solid var(--line); padding: 8px 0 24px; }
+  .sec { border-bottom: 1px solid var(--line); }
+  .sec > summary { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; font-weight: 600; font-size: 14px; list-style: none; user-select: none; }
+  .sec > summary::-webkit-details-marker { display: none; }
+  .sec > summary::after { content: ''; margin-left: auto; width: 7px; height: 7px; border: solid var(--faint); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); transition: transform .15s; }
+  .sec[open] > summary::after { transform: rotate(-135deg); }
+  .sec > summary i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--accent-soft); color: var(--accent-ink); }
+  .sec-b { padding: 0 16px 14px; display: grid; gap: 10px; }
+  .f { display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 8px; }
+  .f > span:first-child { color: var(--mute); }
+  .f > .ctl { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
+  input[type=text], input[type=number], select, textarea { height: 32px; padding: 0 9px; border: 1px solid var(--line2); border-radius: 7px; background: var(--field); min-width: 0; width: 100%; }
+  textarea { height: auto; min-height: 60px; padding: 6px 9px; resize: vertical; font-family: "Roboto Mono", monospace; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); border-color: var(--accent); }
+  input[type=color] { width: 32px; height: 32px; padding: 2px; border: 1px solid var(--line2); border-radius: 7px; background: var(--field); cursor: pointer; flex: none; }
+  input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; }
+  .num { position: relative; flex: 1; min-width: 70px; }
+  .num input { padding-right: 34px; }
+  .num em { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--faint); font-size: 12px; pointer-events: none; }
+  .x { color: var(--faint); }
+  .hint { color: var(--mute); font-size: 12px; }
+  .hint code { background: var(--bg); padding: 0 4px; border-radius: 4px; }
+  .seq { font-family: "Roboto Mono", monospace; font-size: 12px; background: var(--bg); border-radius: 7px; padding: 6px 9px; color: var(--mute); word-break: break-all; }
+  .seq:empty { display: none; }
+  .check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+  /* segmented controls */
+  .seg { display: flex; background: var(--bg); border-radius: 8px; padding: 3px; gap: 2px; width: 100%; }
+  .seg button { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 28px; padding: 2px 8px; border: 0; background: none; border-radius: 6px; cursor: pointer; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { background: var(--raised); color: var(--ink); box-shadow: 0 1px 3px var(--shadow); font-weight: 500; }
+  .seg svg { width: 16px; height: 16px; flex: none; }
+  .seg.cards button { flex-direction: column; padding: 8px 4px; gap: 4px; font-size: 12px; white-space: normal; line-height: 1.2; }
+  .seg.cards svg { width: 40px; height: 22px; }
+  .seg.small { width: auto; }
+  .seg.small button { min-height: 26px; padding: 0 10px; font-weight: 500; }
+  .tog { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line2); border-radius: 7px; cursor: pointer; }
+  .tog input { display: none; }
+  .tog:has(:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+
+  .help { background: var(--bg); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--mute); }
+  .help summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+  .help p, .help ol { margin: 6px 0; }
+  .help ol { padding-left: 18px; }
+  .foot { padding: 14px 16px 0; }
+  .row2 { display: flex; gap: 6px; align-items: center; }
+  .btn.sm { height: 30px; padding: 0 10px; font-size: 12px; }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+  /* ---- dialog + toast ---- */
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); width: min(420px, 92vw); padding: 22px 22px 18px; box-shadow: 0 20px 60px #0006; }
+  dialog[open] { animation: pop .14s ease-out; }
+  dialog::backdrop { background: #0009; backdrop-filter: blur(3px); }
+  @keyframes pop { from { opacity: 0; transform: scale(.96) translateY(6px); } }
+  dialog h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+  dialog p { margin: 0 0 14px; color: var(--mute); }
+  dialog input { height: 40px !important; font-size: 14px; margin-bottom: 4px; }
+  .dlg-actions { display: flex; flex-direction: row-reverse; gap: 8px; margin-top: 16px; }
+  #toast { position: fixed; left: 50%; bottom: 80px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; background: var(--raised); color: var(--ink); border: 1px solid var(--line2); padding: 9px 16px; border-radius: 99px; box-shadow: 0 8px 24px var(--shadow); transition: .2s; z-index: 10; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---- preview canvas ---- */
+  main { flex: 1; position: relative; overflow: hidden; cursor: grab; user-select: none; -webkit-user-select: none; background: var(--canvas) radial-gradient(var(--dot) 1px, transparent 1px) 0 0 / 20px 20px; }
+  main.drag { cursor: grabbing; }
+  #out { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #err { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2; max-width: 80%; background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-line); padding: 7px 14px; border-radius: 99px; font-weight: 500; cursor: default; }
+  #err:empty { display: none; }
+  .viewbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 2; display: flex; align-items: center; gap: 2px; background: var(--raised); padding: 4px; border-radius: 10px; box-shadow: 0 4px 16px var(--shadow); cursor: default; }
+  .viewbar button { height: 30px; min-width: 30px; padding: 0 8px; border: 0; background: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .viewbar button:hover { background: var(--line2); }
+  .viewbar button:disabled { opacity: .35; cursor: default; background: none; }
+  .viewbar span { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; color: var(--mute); }
+  .viewbar .sep { width: 1px; height: 20px; background: var(--line); min-width: 0; }
+  .viewbar svg { width: 16px; height: 16px; }
+
+  /* ---- printed sheet ---- */
+  .page { position: relative; background: #fff; color-scheme: light; margin: 0 0 24px; box-shadow: 0 1px 3px #0002, 0 8px 24px #0001; overflow: hidden; }
+  .cal { position: absolute; inset: 0; transform-origin: 0 0; }
+  .reg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .bleed { position: absolute; }
+  .lbl { position: absolute; display: flex; overflow: hidden; }
+  .lbl.cut { outline: 0.2mm dashed #e33; }
+  .lbl.guide::after { content: ''; position: absolute; inset: var(--pad); outline: 0.15mm dotted #39f; pointer-events: none; }
+  .cell { flex: 1; display: flex; min-width: 0; min-height: 0; }
+  .piece { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; }
+  .piece > .txt { align-self: stretch; }
+  .code { flex: none; }
+  .code svg { display: block; width: 100%; height: 100%; }
+  .txt { flex: 1; display: flex; flex-direction: column; overflow: hidden; line-height: 1.15; white-space: pre; min-width: 0; min-height: 0; }
+  .txt.v { writing-mode: vertical-rl; }
+  .wrapzone { flex: none; position: relative; background: repeating-linear-gradient(45deg, transparent 0 1mm, #0001 1mm 2mm); }
+  .wrapzone.edges { border: 0 dashed #999; border-width: 0 0.2mm; }
+  .wrapzone.edges.col { border-width: 0.2mm 0; }
+  .foldline { position: absolute; top: 0; bottom: 0; left: 50%; border-left: 0.2mm dashed #888; }
+  .col > .foldline { top: 50%; bottom: auto; left: 0; right: 0; border-left: 0; border-top: 0.2mm dashed #888; }
+  .fold { border-left: 0.2mm dashed #bbb; }
+  .fold.col { border-left: 0; border-top: 0.2mm dashed #bbb; }
+
+  @media print {
+    body { display: block; height: auto; overflow: visible; background: #fff; }
+    .top, aside, .viewbar, #err { display: none !important; }
+    .body { display: block; }
+    main { overflow: visible; background: none; }
+    #out { position: static; transform: none !important; }
+    .page { margin: 0; box-shadow: none; break-after: page; }
+    .page:last-child { break-after: auto; }
+    .lbl.screen { outline: none; }
+    .lbl.guide::after { display: none; }
+    .wrapzone { background: none; } /* keep its space and printed guide lines */
+    .fold { border: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#f59e0b"/><rect x="6" y="9" width="16" height="10" rx="2" fill="#fff"/><path d="M9 13h10M9 16h6" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round"/></svg>
+    Label Maker
+  </div>
+  <div class="stats" id="info"></div>
+  <div class="actions">
+    <button class="btn icon" id="themeBtn" title="Light / Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path class="moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg></button>
+    <div class="seg small" id="langSeg"><button data-v="en" class="on">EN</button><button data-v="th">TH</button></div>
+    <details class="menu"><summary class="btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span data-t>Templates</span></summary>
+      <div class="menu-pop">
+        <div id="tplList"></div>
+        <hr>
+        <button id="tplQuick"><span data-t>Save</span> <kbd>Ctrl+S</kbd><small id="tplCur"></small></button>
+        <button id="tplSave"><span data-t>Save current as…</span></button>
+        <button id="tplShare"><span data-t>Copy share link</span><small data-t>Anyone with the link opens these settings</small></button>
+        <button id="tplExport"><span data-t>Export all</span><small data-t>.json file, to back up or share</small></button>
+        <button id="tplImport"><span data-t>Import</span><small data-t>.json file from Export</small></button>
+        <input type="file" id="tplFile" accept=".json,application/json" hidden>
+      </div>
+    </details>
+    <details class="menu"><summary class="btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg><span data-t>Die-line</span></summary>
+      <div class="menu-pop">
+        <button id="exportSvg"><span data-t>SVG file</span><small data-t>Print shop, Illustrator, CorelDRAW</small></button>
+        <button id="exportDxf"><span data-t>DXF file</span><small data-t>Silhouette Studio (Basic edition)</small></button>
+      </div>
+    </details>
+    <button class="btn primary" id="print">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg><span data-t>Print / PDF</span></button>
+  </div>
+</header>
+
+<div class="body">
+<aside>
+  <!-- 1 Paper -->
+  <details class="sec" open><summary><i>1</i><span data-t>Paper</span></summary><div class="sec-b">
+    <div class="f"><span data-t>Size</span><select id="paper">
+      <option value="210x297">A4 · 210 × 297</option>
+      <option value="297x420">A3 · 297 × 420</option>
+      <option value="148x210">A5 · 148 × 210</option>
+      <option value="215.9x279.4">Letter · 216 × 279</option>
+      <option value="custom" data-t>Custom</option>
+    </select></div>
+    <div class="f" id="customPaper"><span data-t>Width × Height</span><div class="ctl">
+      <span class="num"><input type="number" id="pw" value="210" step="0.1"><em>mm</em></span><span class="x">×</span>
+      <span class="num"><input type="number" id="ph" value="297" step="0.1"><em>mm</em></span></div></div>
+    <div class="f"><span data-t>Orientation</span><div class="seg" data-key="orient">
+      <button data-v="p" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="2" width="8" height="12" rx="1"/></svg><span data-t>Portrait</span></button>
+      <button data-v="l"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="4" width="12" height="8" rx="1"/></svg><span data-t>Landscape</span></button>
+    </div></div>
+    <div class="f"><span data-t>Margin</span><div class="ctl">
+      <span class="num"><input type="number" id="mt" value="10" step="0.5" title="Top"><em data-t>top</em></span>
+      <span class="num"><input type="number" id="ml" value="10" step="0.5" title="Left"><em data-t>left</em></span></div></div>
+    <div class="f"><span data-t>Printer offset</span><div class="ctl">
+      <span class="num"><input type="number" id="offX" value="0" step="0.1"><em>X mm</em></span>
+      <span class="num"><input type="number" id="offY" value="0" step="0.1"><em>Y mm</em></span></div></div>
+    <div class="f"><span data-t>Printer scale</span><div class="ctl"><span class="num"><input type="number" id="scaleP" value="100" step="0.1"><em>%</em></span></div></div>
+    <div class="hint" data-t="hintCal">Print a test sheet, measure with a ruler, then nudge offset / scale until labels land exactly. The die-line files are not shifted.</div>
+  </div></details>
+
+  <!-- 2 Label -->
+  <details class="sec" open><summary><i>2</i><span data-t>Label</span></summary><div class="sec-b">
+    <div class="seg cards" data-key="mode">
+      <button data-v="normal" class="on"><svg viewBox="0 0 40 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="36" height="16" rx="3"/><path d="M12 11h16"/></svg><span data-t>Normal</span></button>
+      <button data-v="wrap"><svg viewBox="0 0 40 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="36" height="16" rx="3"/><path d="M14 3v16M26 3v16" stroke-dasharray="2 2"/><path d="M6 11h4M18 11h4M30 11h4"/></svg><span data-t>Wire · wrap</span></button>
+      <button data-v="flag"><svg viewBox="0 0 40 22" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="14" height="16" rx="2"/><rect x="24" y="3" width="14" height="16" rx="2"/><path d="M16 7h8M16 11h8M16 15h8" stroke-dasharray="2 2"/></svg><span data-t>Wire · flag</span></button>
+    </div>
+    <div class="f"><span data-t>Width × Height</span><div class="ctl">
+      <span class="num"><input type="number" id="lw" value="50" step="0.5"><em>mm</em></span><span class="x">×</span>
+      <span class="num"><input type="number" id="lh" value="20" step="0.5"><em>mm</em></span></div></div>
+    <div class="f"><span data-t>Gap X / Y</span><div class="ctl">
+      <span class="num"><input type="number" id="gx" value="2" step="0.5"><em>mm</em></span><span class="x">/</span>
+      <span class="num"><input type="number" id="gy" value="2" step="0.5"><em>mm</em></span></div></div>
+    <div class="f"><span data-t>Safe zone</span><div class="ctl"><span class="num"><input type="number" id="pad" value="1" step="0.5"><em>mm</em></span></div></div>
+    <div class="f m-wrap"><span data-t>Repeat text</span><div class="ctl"><span class="num"><input type="number" id="reps" value="4" min="1"><em>×</em></span></div></div>
+    <div class="f m-flag"><span data-t>Wrap zone</span><div class="ctl"><span class="num"><input type="number" id="wrapmm" value="10" step="0.5"><em>mm</em></span></div></div>
+    <label class="check m-flag"><input type="checkbox" id="mirror" checked><span data-t="mirrorLbl">Mirror side B alignment (left ↔ right)</span></label>
+    <div class="f m-flag"><span data-t>Fold guide</span><div class="seg" data-key="fguide">
+      <button data-v="none" data-t>Off</button><button data-v="center" class="on" data-t>Center</button><button data-v="edges" data-t>+ Edges</button>
+    </div></div>
+    <div class="f m-wire"><span data-t>Wire Ø</span><div class="ctl">
+      <span class="num"><input type="number" id="wireD" value="6" step="0.1" min="0"><em>mm</em></span>
+      <span class="num m-wrap"><input type="number" id="overlap" value="5" step="0.5" min="0" title="Overlap"><em data-t>overlap</em></span>
+      <button class="btn sm" id="wireCalc" data-t>Apply</button></div></div>
+    <div class="hint m-wire" id="wireHint"></div>
+  </div></details>
+
+  <!-- 3 Content -->
+  <details class="sec" open><summary><i>3</i><span data-t>Content</span></summary><div class="sec-b">
+    <div class="seg" data-key="src"><button data-v="range" class="on" data-t>Auto sequence</button><button data-v="list" data-t>Manual list</button></div>
+    <div id="src-range" style="display:grid;gap:10px">
+      <div class="f"><span data-t>From</span><input type="text" id="from" value="A-001-01"></div>
+      <div class="f"><span data-t>To</span><input type="text" id="to" value="A-003-08"></div>
+      <div class="f"><span data-t>Step</span><div class="ctl"><span class="num"><input type="number" id="step" value="1" min="1"><em data-t>last number</em></span></div></div>
+      <div class="hint" data-t="hintSeq">Every number group and single letter counts on its own; the rightmost counts first.</div>
+    </div>
+    <div id="src-list" style="display:grid;gap:8px">
+      <textarea id="list" rows="6">L1&#10;L2&#10;L3&#10;N&#10;PE</textarea>
+      <div class="row2"><label class="check" style="flex:1"><input type="checkbox" id="header"><span data-t>First row = column names</span></label>
+        <button class="btn sm" id="csvBtn" data-t>Load CSV</button><input type="file" id="csvFile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden></div>
+      <div class="hint" data-t="hintList">One label per line. Paste from Excel (Tab) or use commas for columns → <code>{1}</code> <code>{2}</code> … or <code>{ColumnName}</code> with a header row.</div>
+    </div>
+    <div class="seq" id="seqPrev"></div>
+    <div class="f"><span data-t>Text on label</span><textarea id="tpl" rows="2">{n}</textarea></div>
+    <div class="hint" data-t="hintTpl"><code>{n}</code> = the running value (first column). Press Enter for a second line, e.g. <code>MDB-1</code> ⏎ <code>{n}</code></div>
+    <div class="f m-flag"><span data-t>Side B text</span><textarea id="tplB" rows="2" placeholder="= side A"></textarea></div>
+    <div class="hint m-flag" data-t="hintB">Flag back side, e.g. where the wire goes: <code>→ {2}</code>. Blank = same as side A.</div>
+    <div class="f"><span data-t>Copies each</span><div class="ctl"><span class="num"><input type="number" id="copies" value="1" min="1"><em>×</em></span></div></div>
+    <label class="check"><input type="checkbox" id="phase"><span data-t="phaseLbl">Phase colours (IEC): L1 brown · L2 black · L3 grey · N blue · PE green-yellow</span></label>
+    <div class="f"><span data-t>Skip first</span><div class="ctl"><span class="num"><input type="number" id="skip" value="0" min="0"><em data-t>slots</em></span></div></div>
+  </div></details>
+
+  <!-- 4 Code -->
+  <details class="sec"><summary><i>4</i><span data-t>QR / Barcode</span></summary><div class="sec-b">
+    <div class="f"><span data-t>Type</span><select id="code">
+      <option value="none" data-t>None</option>
+      <option value="qr">QR Code</option>
+      <option value="CODE128">Barcode · Code 128</option>
+      <option value="CODE39">Barcode · Code 39</option>
+      <option value="EAN13">Barcode · EAN-13</option>
+    </select></div>
+    <div id="codeOpts" style="display:grid;gap:10px">
+      <div class="f"><span data-t>Code data</span><input type="text" id="codeTpl" value="{n}"></div>
+      <div class="f"><span data-t>Position</span><div class="seg" data-key="cpos">
+        <button data-v="left" class="on" data-t>Left</button><button data-v="right" data-t>Right</button>
+        <button data-v="top" data-t>Top</button><button data-v="bottom" data-t>Bottom</button><button data-v="fill" data-t>Only</button>
+      </div></div>
+      <div class="f"><span data-t>Code size</span><div class="ctl"><span class="num"><input type="number" id="csize" value="15" step="0.5" min="1"><em>mm</em></span></div></div>
+    </div>
+  </div></details>
+
+  <!-- 5 Text -->
+  <details class="sec"><summary><i>5</i><span data-t>Text style</span></summary><div class="sec-b">
+    <div class="f"><span data-t>Font</span><select id="font">
+      <option>Sarabun</option><option>Prompt</option><option>Kanit</option><option>Noto Sans Thai</option>
+      <option>Tahoma</option><option>Arial</option><option>Roboto Mono</option><option>Courier New</option>
+    </select></div>
+    <div class="f"><span data-t>Size</span><div class="ctl">
+      <span class="num" style="max-width:96px"><input type="number" id="fs" value="14" min="1" step="0.5"><em>pt</em></span>
+      <label class="check"><input type="checkbox" id="fit" checked><span data-t>Shrink to fit</span></label></div></div>
+    <div class="f"><span data-t>Style</span><div class="ctl">
+      <label class="tog" title="Bold"><input type="checkbox" id="bold" checked><b>B</b></label>
+      <label class="tog" title="Italic"><input type="checkbox" id="italic"><i>I</i></label>
+      <input type="color" id="color" value="#000000" title="Colour"></div></div>
+    <div class="f"><span data-t>Horizontal</span><div class="seg" data-key="ha">
+      <button data-v="flex-start" title="Left"><svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h12M2 8h7M2 12h10"/></svg></button>
+      <button data-v="center" class="on" title="Center"><svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h12M4.5 8h7M3 12h10"/></svg></button>
+      <button data-v="flex-end" title="Right"><svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h12M7 8h7M4 12h10"/></svg></button>
+    </div></div>
+    <div class="f"><span data-t>Vertical</span><div class="seg" data-key="va">
+      <button data-v="flex-start" title="Top"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2h12"/><rect x="5" y="4.5" width="6" height="5" rx="1"/></svg></button>
+      <button data-v="center" class="on" title="Middle"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 8h3M11 8h3"/><rect x="5" y="5.5" width="6" height="5" rx="1"/></svg></button>
+      <button data-v="flex-end" title="Bottom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 14h12"/><rect x="5" y="6.5" width="6" height="5" rx="1"/></svg></button>
+    </div></div>
+    <div class="f"><span data-t>Rotation</span><div class="seg" data-key="rot"><button data-v="0" class="on">0°</button><button data-v="90">90°</button></div></div>
+  </div></details>
+
+  <!-- 6 Die-cut -->
+  <details class="sec"><summary><i>6</i><span data-t>Die-cut &amp; marks</span></summary><div class="sec-b">
+    <div class="f"><span data-t>Cut line</span><div class="seg" data-key="cut">
+      <button data-v="screen" class="on" data-t>Screen</button><button data-v="print" data-t>Print</button><button data-v="none" data-t>Off</button>
+    </div></div>
+    <div class="f"><span data-t>Corner radius</span><div class="ctl"><span class="num"><input type="number" id="radius" value="0" step="0.5" min="0"><em>mm</em></span></div></div>
+    <div class="f"><span data-t>Background</span><div class="ctl">
+      <label class="check"><input type="checkbox" id="bgOn"></label><input type="color" id="bg" value="#ffe066">
+      <span class="num"><input type="number" id="bleed" value="1" step="0.5" min="0" title="Bleed"><em data-t>bleed</em></span></div></div>
+    <div class="f"><span data-t>Reg marks</span><select id="reg">
+      <option value="none" data-t>None</option>
+      <option value="cross" data-t>Crosshair · print shop</option>
+      <option value="silhouette">Silhouette Type 1 · Cameo / Portrait</option>
+    </select></div>
+    <div id="silOpts" style="display:grid;gap:10px">
+      <div class="f"><span data-t>Mark length</span><div class="ctl"><span class="num"><input type="number" id="sLen" value="20" step="0.5"><em>mm</em></span></div></div>
+      <div class="f"><span data-t>Thickness</span><div class="ctl"><span class="num"><input type="number" id="sThick" value="0.5" step="0.1"><em>mm</em></span></div></div>
+      <div class="f"><span data-t>Inset</span><div class="ctl"><span class="num"><input type="number" id="sInset" value="10" step="0.5"><em>mm</em></span></div></div>
+      <div class="hint" data-t>Must match Silhouette Studio → Registration Marks exactly.</div>
+    </div>
+    <button class="btn block" id="dieDefaults" data-t>Apply die-cut defaults</button>
+    <details class="help"><summary data-t>Die-cut spacing guide</summary><div data-t="guideDie">
+      <p><b>Gap ≥ 3 mm</b> between labels so the blade and waste strip have room. Use 0 only for straight guillotine cuts.</p>
+      <p><b>Safe zone 1.5–2 mm</b>: keep text and codes inside the blue dotted line, die-cut drifts ±0.5–1 mm.</p>
+      <p><b>Bleed 1–2 mm</b> with a background colour so no white edge shows (gap must be ≥ 2× bleed).</p>
+      <p><b>Corner radius 1–3 mm</b> peels better and matches most standard dies.</p>
+      <p>Send the shop the PDF (cut line on Screen) + the die-line SVG (red stroke, same sheet size).</p>
+    </div></details>
+    <details class="help"><summary data-t>Silhouette Cameo 4 workflow</summary><div data-t="guideSil">
+      <ol>
+        <li>Reg marks = <b>Silhouette Type 1</b>; length, thickness and inset the same as in Studio.</li>
+        <li>Clear any "overlaps reg marks" warning (raise the margin).</li>
+        <li>Cut line = Screen → <b>Print</b> at 100% / Actual size.</li>
+        <li>Die-line → <b>DXF file</b>.</li>
+        <li>Studio: Page Setup → same paper size &amp; orientation; Registration Marks → Type 1, same values.</li>
+        <li>Open the DXF → Select all → Group → Transform: <b>X = left margin, Y = top margin</b>.</li>
+        <li>Load the printed sheet → Send → Cut. The Cameo 4 scans the marks itself.</li>
+      </ol>
+      Matte paper reads best; glossy or laminated sheets can fail the scan. Keep ink out of the mark areas.
+    </div></details>
+  </div></details>
+
+  <div class="foot hint" data-t="hintPrint">When printing, set Scale to <b>100% / Actual size</b> and turn off headers &amp; footers.</div>
+</aside>
+
+<dialog id="dlg"><form method="dialog">
+  <h3 id="dlgTitle"></h3><p id="dlgMsg"></p><input type="text" id="dlgInput" autocomplete="off">
+  <div class="dlg-actions"><button value="ok" class="btn primary" id="dlgOk">OK</button><button value="cancel" class="btn" id="dlgCancel" formnovalidate>Cancel</button></div>
+</form></dialog>
+<div id="toast"></div>
+<main id="view">
+  <div id="err"></div>
+  <div id="out"></div>
+  <div class="viewbar">
+    <button id="undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3 2 6l3 3"/><path d="M2 6h7.5a4 4 0 0 1 0 8H7"/></svg></button>
+    <button id="redo" title="Redo (Ctrl+Y)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m11 3 3 3-3 3"/><path d="M14 6H6.5a4 4 0 0 0 0 8H9"/></svg></button>
+    <span class="sep"></span>
+    <button id="zOut" title="Zoom out"><svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8h10"/></svg></button>
+    <span id="zPct">100%</span>
+    <button id="zIn" title="Zoom in"><svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8h10M8 3v10"/></svg></button>
+    <span class="sep"></span>
+    <button id="home" title="Fit page (Shift+1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3"/></svg><span data-t style="min-width:0;color:inherit">Fit</span></button>
+  </div>
+</main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEY = 'labelmaker', TPL_KEY = 'labelmaker.templates';
+const hist = { stack: [], i: -1, busy: false }; // undo/redo snapshots of read()
+let curTpl = ''; // template that Save overwrites
+let lastSize = ''; // refit the view when paper size changes
+const MAX = 10000; // ponytail: hard cap so a typo range doesn't hang the tab
+const ids = ['paper','pw','ph','mt','ml','lw','lh','gx','gy','pad','reps','wrapmm','radius','bgOn','bg','bleed','reg','sLen','sThick','sInset',
+  'from','to','list','tpl','tplB','mirror','header','step','phase','offX','offY','scaleP','wireD','overlap','copies','skip','code','codeTpl','csize','font','fs','fit','bold','italic','color'];
+
+// ---- i18n: English text in the HTML is the key (or data-t="key" for long blocks) ----
+const TH = {
+  'Die-line': 'เส้นไดคัท', 'SVG file': 'ไฟล์ SVG', 'Print shop, Illustrator, CorelDRAW': 'ร้านพิมพ์, Illustrator, CorelDRAW',
+  'DXF file': 'ไฟล์ DXF', 'Silhouette Studio (Basic edition)': 'Silhouette Studio (รุ่น Basic ก็เปิดได้)', 'Print / PDF': 'พิมพ์ / PDF',
+  'Paper': 'กระดาษ', 'Size': 'ขนาด', 'Custom': 'กำหนดเอง', 'Width × Height': 'กว้าง × สูง', 'Orientation': 'แนว', 'Portrait': 'ตั้ง', 'Landscape': 'นอน',
+  'Margin': 'ขอบกระดาษ', 'top': 'บน', 'left': 'ซ้าย',
+  'Label': 'Label', 'Normal': 'ปกติ', 'Wire · wrap': 'สายไฟ · พันรอบ', 'Wire · flag': 'สายไฟ · ธง',
+  'Gap X / Y': 'ระยะห่าง X / Y', 'Safe zone': 'ระยะปลอดภัย', 'Repeat text': 'ซ้ำข้อความ', 'Wrap zone': 'ช่วงพันสาย',
+  'Content': 'ข้อมูล', 'Auto sequence': 'วิ่งเลขอัตโนมัติ', 'Manual list': 'พิมพ์เอง', 'From': 'เริ่ม', 'To': 'ถึง',
+  hintSeq: 'ตัวเลขแต่ละกลุ่ม และตัวอักษร 1 ตัว วิ่งแยกกัน โดยกลุ่มขวาสุดวิ่งก่อน',
+  'Text on label': 'ข้อความบน label',
+  hintTpl: '<code>{n}</code> = ค่าที่วิ่ง (คอลัมน์แรก) กด Enter เพื่อขึ้นบรรทัดที่ 2 เช่น <code>MDB-1</code> ⏎ <code>{n}</code>',
+  'Copies each': 'สำเนาต่อค่า', 'Skip first': 'ข้ามช่องแรก', 'slots': 'ช่อง',
+  'QR / Barcode': 'QR / Barcode', 'Type': 'ชนิด', 'None': 'ไม่มี', 'Code data': 'ข้อมูลในโค้ด', 'Position': 'ตำแหน่ง',
+  'Left': 'ซ้าย', 'Right': 'ขวา', 'Top': 'บน', 'Bottom': 'ล่าง', 'Only': 'โค้ดล้วน', 'Code size': 'ขนาดโค้ด',
+  'Text style': 'รูปแบบข้อความ', 'Font': 'Font', 'Shrink to fit': 'ย่อให้พอดี', 'Style': 'สไตล์', 'Horizontal': 'แนวนอน', 'Vertical': 'แนวตั้ง', 'Rotation': 'หมุน',
+  'Die-cut &amp; marks': 'Die-cut และ Reg marks', 'Cut line': 'เส้นตัด', 'Screen': 'บนจอ', 'Print': 'พิมพ์', 'Off': 'ปิด',
+  'Corner radius': 'มุมโค้ง', 'Background': 'สีพื้น', 'bleed': 'bleed', 'Reg marks': 'Reg marks', 'Crosshair · print shop': 'กากบาท · ร้านพิมพ์',
+  'Mark length': 'ความยาว mark', 'Thickness': 'ความหนา', 'Inset': 'ระยะจากขอบ',
+  'Must match Silhouette Studio → Registration Marks exactly.': 'ต้องตั้งให้ตรงกับ Silhouette Studio → Registration Marks ทุกค่า',
+  'Apply die-cut defaults': 'ใช้ค่ามาตรฐาน die-cut', 'Die-cut spacing guide': 'คู่มือระยะ die-cut', 'Silhouette Cameo 4 workflow': 'ขั้นตอน Silhouette Cameo 4',
+  guideDie: `
+      <p><b>ระยะห่าง ≥ 3 mm</b> ระหว่าง label ให้ใบมีดและเศษกระดาษมีที่ ใช้ 0 ได้เฉพาะตัดตรงด้วยเครื่องตัดกระดาษ</p>
+      <p><b>ระยะปลอดภัย 1.5–2 mm</b>: ให้ข้อความ/โค้ดอยู่ในเส้นประสีฟ้า เพราะไดคัทคลาดได้ ±0.5–1 mm</p>
+      <p><b>Bleed 1–2 mm</b> ถ้ามีสีพื้น จะได้ไม่เห็นขอบขาว (ระยะห่างต้อง ≥ 2× bleed)</p>
+      <p><b>มุมโค้ง 1–3 mm</b> ลอกง่ายกว่า และตรงกับบล็อกมาตรฐานส่วนใหญ่</p>
+      <p>ส่งร้าน: PDF (เส้นตัด = บนจอ) + ไฟล์เส้นไดคัท SVG (เส้นแดง ขนาดกระดาษเดียวกัน)</p>`,
+  guideSil: `
+      <ol>
+        <li>Reg marks = <b>Silhouette Type 1</b> ความยาว ความหนา ระยะจากขอบ ให้ตรงกับใน Studio</li>
+        <li>แก้คำเตือน "ทับ reg marks" ให้หมด (เพิ่มขอบกระดาษ)</li>
+        <li>เส้นตัด = บนจอ → <b>พิมพ์</b> Scale 100% / Actual size</li>
+        <li>เส้นไดคัท → <b>ไฟล์ DXF</b></li>
+        <li>Studio: Page Setup → ขนาดกระดาษและแนวเดียวกัน, Registration Marks → Type 1 ค่าเดียวกัน</li>
+        <li>เปิดไฟล์ DXF → Select all → Group → Transform: <b>X = ขอบซ้าย, Y = ขอบบน</b></li>
+        <li>ใส่กระดาษที่พิมพ์แล้ว → Send → Cut แล้ว Cameo 4 จะสแกน mark เอง</li>
+      </ol>
+      กระดาษด้านอ่าน mark ได้ดีสุด กระดาษมันหรือเคลือบอาจสแกนไม่ผ่าน และห้ามมีหมึกในบริเวณ mark`,
+  hintPrint: 'ตอนพิมพ์ ตั้ง Scale เป็น <b>100% / Actual size</b> และปิด headers &amp; footers',
+  'Fit': 'พอดีจอ',
+  'values': 'ค่า', 'labels': 'label', 'per sheet': 'ต่อแผ่น', 'sheets': 'แผ่น', 'Label is bigger than the paper': 'Label ใหญ่กว่ากระดาษ',
+  "Start and end patterns don't match": 'รูปแบบ "เริ่ม" กับ "ถึง" ไม่ตรงกัน', "Can't count": 'วิ่งไม่ได้', 'Over': 'เกิน',
+  'invalid barcode data': 'ข้อมูล barcode ไม่ถูกต้อง', 'Gap is smaller than 2× bleed — bleed of neighbours will overlap': 'ระยะห่างน้อยกว่า 2× bleed — สีพื้นของ label ข้างกันจะทับกัน',
+  'Labels overlap the reg marks — increase the margin': 'Label ทับ reg marks — เพิ่มขอบกระดาษ',
+  'One label per line': '1 บรรทัด = 1 label',
+  'Fold guide': 'เส้นนำพับ', mirrorLbl: 'ด้าน B จัดชิดกลับด้าน (ซ้าย ↔ ขวา)', 'Center': 'กลาง', '+ Edges': '+ ขอบ',
+  'Copy share link': 'คัดลอกลิงก์แชร์', 'Anyone with the link opens these settings': 'ใครเปิดลิงก์จะได้การตั้งค่านี้', 'Link copied': 'คัดลอกลิงก์แล้ว',
+  'Printer offset': 'ชดเชยเครื่องพิมพ์', 'Printer scale': 'สเกลเครื่องพิมพ์',
+  hintCal: 'พิมพ์แผ่นทดสอบ วัดด้วยไม้บรรทัด แล้วปรับ offset / scale จน label ตรงตำแหน่ง (ไฟล์เส้นไดคัทไม่ถูกเลื่อน)',
+  'Wire Ø': 'Ø สายไฟ', 'overlap': 'ทับซ้อน', 'Apply': 'ใช้ค่า', 'Step': 'ทีละ', 'last number': 'เลขท้าย',
+  'First row = column names': 'แถวแรก = ชื่อคอลัมน์', 'Load CSV': 'โหลด CSV',
+  hintList: '1 บรรทัด = 1 label วางจาก Excel (Tab) หรือคั่นด้วยจุลภาค → <code>{1}</code> <code>{2}</code> … หรือ <code>{ชื่อคอลัมน์}</code> ถ้ามีแถวหัวตาราง',
+  'Side B text': 'ข้อความด้าน B', hintB: 'ด้านหลังของธง เช่นปลายทางสาย <code>→ {2}</code> เว้นว่าง = เหมือนด้าน A',
+  phaseLbl: 'สีตามเฟส (IEC): L1 น้ำตาล · L2 ดำ · L3 เทา · N ฟ้า · PE เขียว-เหลือง',
+  'OK': 'ตกลง', 'Cancel': 'ยกเลิก', 'Save': 'บันทึก', 'Delete': 'ลบ', 'Replace': 'แทนที่', 'Save template': 'บันทึกเทมเพลต',
+  'Saved': 'บันทึกแล้ว', 'Imported': 'นำเข้าแล้ว', 'circumference': 'เส้นรอบวง', 'label length': 'ความยาว label',
+  'Templates': 'เทมเพลต', 'Save current as…': 'บันทึกค่าปัจจุบันเป็น…', 'Export all': 'Export ทั้งหมด', '.json file, to back up or share': 'ไฟล์ .json ไว้สำรองหรือแชร์',
+  'Import': 'Import', '.json file from Export': 'ไฟล์ .json ที่ Export ไว้', 'No templates yet': 'ยังไม่มีเทมเพลต', 'Template name': 'ชื่อเทมเพลต', 'No template loaded yet: asks for a name': 'ยังไม่ได้โหลดเทมเพลต จะถามชื่อก่อนบันทึก',
+  'Replace existing template': 'มีชื่อนี้แล้ว แทนที่เลยไหม', 'Delete template': 'ลบเทมเพลต', 'Invalid template file': 'ไฟล์เทมเพลตไม่ถูกต้อง', 'Load': 'โหลด',
+};
+let lang = 'en', theme = 'dark';
+function applyTheme() { document.documentElement.dataset.theme = theme; }
+const t = s => lang === 'th' ? (TH[s] ?? s) : s;
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-t]').forEach(el => {
+    el.dataset.en ??= el.innerHTML;
+    el.innerHTML = lang === 'th' ? (TH[el.dataset.t || el.dataset.en] ?? el.dataset.en) : el.dataset.en;
+  });
+  $('list').placeholder = t('One label per line');
+  $('langSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === lang));
+}
+
+// ---- segmented controls: .seg[data-key] act like one input ----
+const segs = {};
+function setSeg(k, v) {
+  segs[k] = v;
+  document.querySelectorAll(`.seg[data-key="${k}"] button`).forEach(x => x.classList.toggle('on', x.dataset.v === v));
+}
+document.querySelectorAll('.seg[data-key]').forEach(el => {
+  segs[el.dataset.key] = el.querySelector('.on').dataset.v;
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; e.preventDefault(); setSeg(el.dataset.key, b.dataset.v); render(); });
+});
+
+// ---- sequence: split into digit / letter / other tokens, range each, cartesian product ----
+function tokens(s) { return s.match(/\d+|[A-Za-z]+|[^A-Za-z\d]+/g) || []; }
+function expand(a, b, step = 1) {
+  const ta = tokens(a), tb = tokens(b);
+  if (ta.length !== tb.length) throw t("Start and end patterns don't match");
+  const isNum = i => /^\d+$/.test(ta[i]) && /^\d+$/.test(tb[i]);
+  const lastNum = ta.findLastIndex((_, i) => isNum(i)); // step applies to the rightmost number group
+  const parts = ta.map((s, i) => {
+    const e = tb[i];
+    if (isNum(i)) {
+      const w = s.length, x = +s, y = +e, d = (x <= y ? 1 : -1) * (i === lastNum ? Math.max(1, step) : 1), out = [];
+      for (let n = x; d > 0 ? n <= y : n >= y; n += d) out.push(String(n).padStart(w, '0'));
+      return out;
+    }
+    if (/^[A-Za-z]$/.test(s) && /^[A-Za-z]$/.test(e)) {
+      const x = s.charCodeAt(0), y = e.charCodeAt(0), d = x <= y ? 1 : -1, out = [];
+      for (let n = x; n !== y + d; n += d) out.push(String.fromCharCode(n));
+      return out;
+    }
+    if (s !== e) throw `${t("Can't count")} "${s}" → "${e}"`;
+    return [s];
+  });
+  if (parts.reduce((p, x) => p * x.length, 1) > MAX) throw `${t('Over')} ${MAX} ${t('labels')}`;
+  return parts.reduce((acc, p) => acc.flatMap(a => p.map(x => a + x)), ['']);
+}
+// self-check
+console.assert(expand('A-001-01', 'A-002-03').join() === 'A-001-01,A-001-02,A-001-03,A-002-01,A-002-02,A-002-03');
+console.assert(expand('A1', 'C1').join() === 'A1,B1,C1');
+console.assert(expand('X09', 'X11').join() === 'X09,X10,X11');
+console.assert(expand('A-1-01', 'A-2-05', 2).join() === 'A-1-01,A-1-03,A-1-05,A-2-01,A-2-03,A-2-05');
+
+// ---- QR / barcode -> SVG string ----
+let badCodes = 0;
+function codeSVG(data, type) {
+  if (type === 'qr') {
+    qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']; // Thai text in QR
+    const q = qrcode(0, 'M'); q.addData(data); q.make();
+    return q.createSvgTag({ cellSize: 1, margin: 0, scalable: true });
+  }
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  let ok = true;
+  try { JsBarcode(el, data, { format: type, displayValue: false, margin: 0, height: 50, width: 2, valid: v => ok = v }); } catch { ok = false; }
+  if (!ok) { badCodes++; return ''; }
+  if (!el.getAttribute('viewBox')) el.setAttribute('viewBox', `0 0 ${parseFloat(el.getAttribute('width'))} ${parseFloat(el.getAttribute('height'))}`);
+  el.removeAttribute('width'); el.removeAttribute('height'); el.removeAttribute('style');
+  el.setAttribute('preserveAspectRatio', 'none'); // bars stretch to the box, still scannable
+  return el.outerHTML;
+}
+
+// ---- font fit via canvas measureText ----
+const ctx = document.createElement('canvas').getContext('2d');
+const PT = 0.3528; // mm per pt
+function fitPt(lines, boxW, boxH, s) {
+  if (boxW <= 0 || boxH <= 0) return 1;
+  ctx.font = `${s.italic ? 'italic ' : ''}${s.bold ? 700 : 400} 100px "${s.font}"`;
+  const em = Math.max(...lines.map(l => ctx.measureText(l).width)) / 100 || 1;
+  const mm = Math.min(boxW / em, boxH / (lines.length * 1.15)) * 0.95;
+  return Math.min(s.fs, mm / PT);
+}
+
+function read() {
+  const s = {};
+  for (const id of ids) { const el = $(id); s[id] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? +el.value : el.value; }
+  return Object.assign(s, segs);
+}
+function esc(x) { return x.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
+
+function textBox(lines, w, h, s) {
+  const v = s.rot === '90';
+  const fs = s.fit ? fitPt(lines, v ? h : w, v ? w : h, s) : s.fs;
+  // in vertical-rl writing mode the flex axes swap, so swap alignments too
+  const st = `font-size:${fs}pt;justify-content:${v ? s.ha : s.va};align-items:${v ? s.va : s.ha};text-align:${{ 'flex-start': 'left', center: 'center', 'flex-end': 'right' }[s.ha]}`;
+  return `<div class="txt${v ? ' v' : ''}" style="${st}">${lines.map(esc).join('\n')}</div>`;
+}
+
+// ---- columns: Tab (Excel paste) or comma; {n} = first column, {1}.. by position, {Name} by header ----
+let head = [];
+function cols(v) { return (v.includes('\t') ? v.split('\t') : v.includes(',') ? v.split(',') : [v]).map(x => x.trim()); }
+function fill(tpl, v) {
+  const c = cols(v);
+  return tpl.replace(/\{([^{}]+)\}/g, (m, k) => k === 'n' ? c[0] : /^\d+$/.test(k) ? c[k - 1] ?? '' : head.includes(k) ? c[head.indexOf(k)] ?? '' : m);
+}
+head = ['Cable', 'To']; console.assert(fill('{n}|{2}|{To}|{x}', 'W1\tPanel') === 'W1|Panel|Panel|{x}'); head = [];
+
+// IEC 60446 / TIS 11 wire colours: [background, text]
+const PHASE = { L1: ['#7a4a25', '#fff'], L2: ['#141414', '#fff'], L3: ['#8a8f98', '#fff'], N: ['#1f5fbf', '#fff'],
+  PE: ['repeating-linear-gradient(45deg,#2e9d3a 0 3mm,#f2d21b 3mm 6mm)', '#000'] };
+PHASE.G = PHASE.E = PHASE.GND = PHASE.PE;
+function phaseOf(v) { return PHASE[cols(v)[0].toUpperCase()]; }
+
+// one printable piece (text + optional code) in a w×h mm box
+function piece(val, w, h, s, tpl = s.tpl) {
+  const lines = fill(tpl, val).split('\n');
+  if (s.code === 'none') return textBox(lines, w, h, s);
+  const svg = codeSVG(fill(s.codeTpl, val), s.code), qr = s.code === 'qr';
+  const box = (cw, ch) => `<div class="code" style="width:${cw}mm;height:${ch}mm">${svg}</div>`;
+  if (s.cpos === 'fill') { const m = Math.min(w, h); return `<div class="piece">${qr ? box(m, m) : box(w, h)}</div>`; }
+  const G = 1, horiz = s.cpos === 'left' || s.cpos === 'right';
+  let cw = horiz ? Math.min(s.csize, w) : w, ch = horiz ? h : Math.min(s.csize, h);
+  if (qr) cw = ch = Math.min(cw, ch);
+  const txt = textBox(lines, horiz ? w - cw - G : w, horiz ? h : h - ch - G, s);
+  const first = s.cpos === 'left' || s.cpos === 'top';
+  return `<div class="piece" style="flex-direction:${horiz ? 'row' : 'column'};gap:${G}mm">${first ? box(cw, ch) + txt : txt + box(cw, ch)}</div>`;
+}
+
+function labelHTML(val, s) {
+  const W = s.lw - 2 * s.pad, H = s.lh - 2 * s.pad;
+  const row = W >= H; // pieces go along the long side
+  const cell = (inner, fold) => `<div class="cell${fold ? ' fold' + (row ? '' : ' col') : ''}">${inner}</div>`;
+  if (s.mode === 'wrap') {
+    const n = Math.max(1, s.reps), one = piece(val, row ? W / n : W, row ? H : H / n, s);
+    return { dir: row ? 'row' : 'column', html: Array.from({ length: n }, (_, i) => cell(one, i > 0)).join('') };
+  }
+  if (s.mode === 'flag') {
+    const z = s.wrapmm, pw = row ? (W - z) / 2 : W, ph = row ? H : (H - z) / 2;
+    // mirror: side B flips alignment (and code side) along the fold axis, so both sides hug the outer edges / the fold
+    const flip = { 'flex-start': 'flex-end', 'flex-end': 'flex-start', center: 'center', left: 'right', right: 'left', top: 'bottom', bottom: 'top', fill: 'fill' };
+    const sB = !s.mirror ? s : row ? { ...s, ha: flip[s.ha], cpos: ['left', 'right'].includes(s.cpos) ? flip[s.cpos] : s.cpos }
+                                   : { ...s, va: flip[s.va], cpos: ['top', 'bottom'].includes(s.cpos) ? flip[s.cpos] : s.cpos };
+    const a = cell(piece(val, pw, ph, s)), b = s.tplB.trim() || sB !== s ? cell(piece(val, pw, ph, sB, s.tplB.trim() ? s.tplB : s.tpl)) : a;
+    const zc = 'wrapzone' + (row ? '' : ' col') + (s.fguide === 'edges' ? ' edges' : '');
+    const line = s.fguide !== 'none' ? '<div class="foldline"></div>' : '';
+    return { dir: row ? 'row' : 'column', html: a + `<div class="${zc}" style="${row ? 'width' : 'height'}:${z}mm">${line}</div>` + b };
+  }
+  return { dir: 'row', html: cell(piece(val, W, H, s)) };
+}
+
+function layout(s) {
+  let [pw, ph] = s.paper === 'custom' ? [s.pw, s.ph] : s.paper.split('x').map(Number);
+  if (s.orient === 'l') [pw, ph] = [ph, pw];
+  const cols = Math.floor((pw - 2 * s.ml + s.gx) / (s.lw + s.gx));
+  const rows = Math.floor((ph - 2 * s.mt + s.gy) / (s.lh + s.gy));
+  const pos = i => [s.ml + (i % cols) * (s.lw + s.gx), s.mt + Math.floor(i / cols) * (s.lh + s.gy)];
+  return { pw, ph, cols, rows, per: Math.max(0, cols) * Math.max(0, rows), pos };
+}
+
+// filled rects [x, y, w, h] in mm for Silhouette Type 1: square top-left, L corners top-right & bottom-left
+const SIL_SQ = 5; // ponytail: Studio's square is a fixed 5 mm; if Cameo fails to read, compare with a Studio-printed sheet
+function silRects(pw, ph, s) {
+  const i = s.sInset, L = s.sLen, t = s.sThick;
+  return [[i, i, SIL_SQ, SIL_SQ],
+    [pw - i - L, i, L, t], [pw - i - t, i, t, L],
+    [i, ph - i - t, L, t], [i, ph - i - L, t, L]];
+}
+function regMarks(pw, ph, s) {
+  if (s.reg === 'silhouette')
+    return `<g fill="#000" stroke="none">${silRects(pw, ph, s).map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`).join('')}</g>`;
+  // crosshair + circle 5 mm in from each corner
+  return `<g fill="none" stroke="#000" stroke-width="0.2">${[[5, 5], [pw - 5, 5], [5, ph - 5], [pw - 5, ph - 5]].map(([x, y]) =>
+    `<circle cx="${x}" cy="${y}" r="1.5"/><path d="M${x - 3} ${y}h6M${x} ${y - 3}v6"/>`).join('')}</g>`;
+}
+// does any label (incl. bleed) come within 1 mm of a Silhouette mark's bounding box?
+function overlapsMarks(s, L, bleed) {
+  const { pw, ph } = L, i = s.sInset, len = Math.max(s.sLen, SIL_SQ), k = 1 + bleed;
+  const zones = [[i, i, SIL_SQ, SIL_SQ], [pw - i - len, i, len, len], [i, ph - i - len, len, len]];
+  for (let n = 0; n < L.per; n++) {
+    const [x, y] = L.pos(n);
+    if (zones.some(([zx, zy, zw, zh]) => x - k < zx + zw && x + s.lw + k > zx && y - k < zy + zh && y + s.lh + k > zy)) return true;
+  }
+  return false;
+}
+
+// ---- DXF (R12, mm, y-up) die-line: rounded rects as LINE + ARC ----
+function dxfRect(x, y, w, h, r, ph) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  const yb = ph - y - h, yt = ph - y;
+  const line = (x1, y1, x2, y2) => `0\nLINE\n8\nCUT\n10\n${x1}\n20\n${y1}\n11\n${x2}\n21\n${y2}\n`;
+  const arc = (cx, cy, a1, a2) => `0\nARC\n8\nCUT\n10\n${cx}\n20\n${cy}\n40\n${r}\n50\n${a1}\n51\n${a2}\n`;
+  let out = line(x + r, yb, x + w - r, yb) + line(x + w, yb + r, x + w, yt - r) + line(x + w - r, yt, x + r, yt) + line(x, yt - r, x, yb + r);
+  if (r) out += arc(x + r, yb + r, 180, 270) + arc(x + w - r, yb + r, 270, 360) + arc(x + w - r, yt - r, 0, 90) + arc(x + r, yt - r, 90, 180);
+  return out;
+}
+console.assert(dxfRect(0, 0, 10, 5, 1, 100).split('\nLINE\n').length === 5 && dxfRect(0, 0, 10, 5, 1, 100).split('\nARC\n').length === 5);
+function download(text, type, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function exportDXF() {
+  const s = read(), L = layout(s);
+  let ents = '';
+  for (let i = 0; i < L.per; i++) { const [x, y] = L.pos(i); ents += dxfRect(x, y, s.lw, s.lh, s.radius, L.ph); }
+  download(`0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${ents}0\nENDSEC\n0\nEOF\n`,
+    'application/dxf', `dieline_${L.pw}x${L.ph}_${s.lw}x${s.lh}.dxf`);
+}
+// die-line for one full sheet, in real mm, red hairline (what die makers expect)
+function exportSVG() {
+  const s = read(), L = layout(s);
+  let rects = '';
+  for (let i = 0; i < L.per; i++) { const [x, y] = L.pos(i); rects += `<rect x="${x}" y="${y}" width="${s.lw}" height="${s.lh}" rx="${s.radius}"/>`; }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${L.pw}mm" height="${L.ph}mm" viewBox="0 0 ${L.pw} ${L.ph}">
+<g id="dieline" fill="none" stroke="#ff0000" stroke-width="0.1">${rects}</g>
+${s.reg === 'cross' ? regMarks(L.pw, L.ph, s) : ''}
+</svg>`; // Silhouette marks are left out: Studio adds its own, they must not be cut
+  download(svg, 'image/svg+xml', `dieline_${L.pw}x${L.ph}_${s.lw}x${s.lh}.svg`);
+}
+
+function render() {
+  const s = read();
+  saveLast({ ...s, lang, theme, tplName: curTpl });
+  record(s);
+  $('customPaper').hidden = s.paper !== 'custom';
+  document.querySelectorAll('.m-wrap').forEach(e => e.hidden = s.mode !== 'wrap');
+  document.querySelectorAll('.m-flag').forEach(e => e.hidden = s.mode !== 'flag');
+  $('codeOpts').hidden = s.code === 'none';
+  $('silOpts').hidden = s.reg !== 'silhouette';
+  $('src-range').hidden = s.src !== 'range';
+  $('src-list').hidden = s.src !== 'list';
+  document.querySelectorAll('.m-wire').forEach(e => e.hidden = s.mode === 'normal');
+  const circ = Math.PI * s.wireD;
+  $('wireHint').textContent = `${t('circumference')} ≈ ${circ.toFixed(1)} mm` + (s.mode === 'wrap' ? ` · ${t('label length')} ≈ ${(circ + s.overlap).toFixed(1)} mm` : '');
+
+  const L = layout(s);
+  $('pagestyle').textContent = `@page { size: ${L.pw}mm ${L.ph}mm; margin: 0; }`;
+
+  let vals = [];
+  const errs = [];
+  head = [];
+  try {
+    if (s.src === 'range') vals = expand(s.from.trim(), s.to.trim(), s.step);
+    else {
+      vals = s.list.split('\n').map(l => l.replace(/\r$/, '')).filter(l => l.trim());
+      if (s.header && vals.length) head = cols(vals.shift());
+    }
+  } catch (e) { errs.push(e); }
+  $('seqPrev').textContent = s.src !== 'range' || !vals.length ? '' : vals.length > 3 ? `${vals[0]}, ${vals[1]} … ${vals.at(-1)}` : vals.join(', ');
+  const copies = Math.max(1, s.copies);
+  const items = Array(Math.max(0, s.skip)).fill(null).concat(vals.flatMap(v => Array(copies).fill(v))).slice(0, MAX);
+  if (L.per < 1) { $('out').innerHTML = ''; $('info').innerHTML = ''; $('err').textContent = [...errs, t('Label is bigger than the paper')].join(' · '); return; }
+
+  const bleed = s.bgOn ? s.bleed : 0;
+  if (s.bgOn && (s.gx < 2 * bleed || s.gy < 2 * bleed)) errs.push(t('Gap is smaller than 2× bleed — bleed of neighbours will overlap'));
+  if (s.reg === 'silhouette' && overlapsMarks(s, L, bleed)) errs.push(t('Labels overlap the reg marks — increase the margin'));
+  const font = `font-family:'${s.font}';font-weight:${s.bold ? 700 : 400};font-style:${s.italic ? 'italic' : 'normal'};color:${s.color}`;
+  const cls = 'lbl' + (s.cut !== 'none' ? ' cut guide' : '') + (s.cut === 'screen' ? ' screen' : '');
+  const reg = s.reg !== 'none' ? `<svg class="reg" viewBox="0 0 ${L.pw} ${L.ph}">${regMarks(L.pw, L.ph, s)}</svg>` : '';
+  const cache = new Map(); // same value -> same html
+  badCodes = 0;
+  let html = '';
+  for (let p = 0; p * L.per < Math.max(items.length, 1); p++) {
+    html += `<div class="page" style="width:${L.pw}mm;height:${L.ph}mm;${font}"><div class="cal" style="transform:translate(${s.offX}mm,${s.offY}mm) scale(${s.scaleP / 100})">${reg}`;
+    for (let i = 0; i < L.per; i++) {
+      const v = items[p * L.per + i];
+      if (v == null) continue;
+      if (!cache.has(v)) cache.set(v, labelHTML(v, s));
+      const c = cache.get(v), [x, y] = L.pos(i), ph = s.phase && phaseOf(v);
+      const bg = ph ? ph[0] : s.bgOn ? s.bg : '';
+      if (bleed && bg) html += `<div class="bleed" style="left:${x - bleed}mm;top:${y - bleed}mm;width:${s.lw + 2 * bleed}mm;height:${s.lh + 2 * bleed}mm;border-radius:${s.radius + bleed}mm;background:${bg}"></div>`;
+      html += `<div class="${cls}" style="left:${x}mm;top:${y}mm;width:${s.lw}mm;height:${s.lh}mm;padding:${s.pad}mm;--pad:${s.pad}mm;border-radius:${s.radius}mm;${bg ? `background:${bg};` : ''}${ph ? `color:${ph[1]};` : ''}flex-direction:${c.dir}">${c.html}</div>`;
+    }
+    html += '</div></div>';
+  }
+  if (badCodes) errs.push(`${badCodes}× ${t('invalid barcode data')}`);
+  $('out').innerHTML = html;
+  if (lastSize !== `${L.pw}x${L.ph}`) { lastSize = `${L.pw}x${L.ph}`; fitView(); }
+  $('err').textContent = errs.join(' · ');
+  const n = vals.length * copies, sheets = Math.ceil(items.length / L.per) || 0;
+  $('info').innerHTML = `<span class="chip"><b>${n}</b> ${t('labels')}</span><span class="chip"><b>${L.cols} × ${L.rows}</b> = ${L.per} ${t('per sheet')}</span><span class="chip"><b>${sheets}</b> ${t('sheets')}</span>`;
+}
+
+// ---- preview: Figma-style pan / zoom ----
+const view = { x: 0, y: 0, z: 1 }, vp = $('view');
+function applyView() {
+  $('out').style.transform = `translate(${view.x}px,${view.y}px) scale(${view.z})`;
+  $('zPct').textContent = Math.round(view.z * 100) + '%';
+}
+function zoomAt(k, mx, my) { // keep the point under (mx,my) fixed
+  const z = Math.min(8, Math.max(0.05, view.z * k));
+  view.x = mx - (mx - view.x) * z / view.z; view.y = my - (my - view.y) * z / view.z; view.z = z; applyView();
+}
+function fitView() { // fit the first page, centred
+  const p = $('out').querySelector('.page'); if (!p) return;
+  const W = vp.clientWidth, H = vp.clientHeight;
+  view.z = Math.min((W - 48) / p.offsetWidth, (H - 96) / p.offsetHeight);
+  view.x = (W - p.offsetWidth * view.z) / 2; view.y = 24; applyView();
+}
+vp.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) { const r = vp.getBoundingClientRect(); zoomAt(Math.abs(e.deltaY) < 50 ? Math.exp(-e.deltaY * 0.01) : e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top); } // pinch: smooth; mouse wheel: 10% per notch
+  else { view.x -= e.shiftKey ? e.deltaY : e.deltaX; view.y -= e.shiftKey ? 0 : e.deltaY; applyView(); }
+}, { passive: false });
+vp.addEventListener('pointerdown', e => {
+  if (e.target.closest('.viewbar, #err')) return;
+  const sx = e.clientX - view.x, sy = e.clientY - view.y;
+  vp.setPointerCapture(e.pointerId); vp.classList.add('drag');
+  const move = ev => { view.x = ev.clientX - sx; view.y = ev.clientY - sy; applyView(); };
+  vp.addEventListener('pointermove', move);
+  vp.addEventListener('pointerup', () => { vp.removeEventListener('pointermove', move); vp.classList.remove('drag'); }, { once: true });
+});
+$('zIn').onclick = () => zoomAt(1.25, vp.clientWidth / 2, vp.clientHeight / 2);
+$('zOut').onclick = () => zoomAt(0.8, vp.clientWidth / 2, vp.clientHeight / 2);
+$('home').onclick = fitView;
+addEventListener('keydown', e => { if (e.shiftKey && e.code === 'Digit1' && !e.target.closest('input,textarea,select')) fitView(); });
+addEventListener('resize', fitView);
+
+// ---- wiring ----
+$('langSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; lang = b.dataset.v; applyLang(); renderTpls(); render(); });
+{
+  const saved = loadLast();
+  applyConfig(saved);
+  if (location.hash.startsWith('#c=')) { // opened from a share link
+    try { applyConfig(JSON.parse(unb64(location.hash.slice(3)))); } catch {}
+    history.replaceState(null, '', location.href.split('#')[0]);
+  }
+  if (saved.lang) lang = saved.lang;
+  if (saved.theme) theme = saved.theme;
+  if (saved.tplName && getTpls()[saved.tplName]) curTpl = saved.tplName;
+}
+if (!$('reg').value) $('reg').value = 'none'; // old saves stored a checkbox
+
+let timer;
+document.querySelector('aside').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(render, 150); });
+$('font').addEventListener('change', () => document.fonts.load(`700 12px "${$('font').value}"`).then(render));
+$('dieDefaults').onclick = () => {
+  Object.entries({ gx: 3, gy: 3, pad: 2, radius: 2, bleed: 1.5 }).forEach(([k, v]) => $(k).value = v);
+  setSeg('cut', 'screen');
+  if ($('reg').value === 'none') $('reg').value = 'cross';
+  render();
+};
+$('exportSvg').onclick = () => { exportSVG(); $('exportSvg').closest('details').open = false; };
+$('exportDxf').onclick = () => { exportDXF(); $('exportDxf').closest('details').open = false; };
+$('print').onclick = () => window.print();
+
+// ---- undo / redo ----
+function record(s) {
+  if (!hist.busy) {
+    const j = JSON.stringify(s);
+    if (hist.stack[hist.i] !== j) {
+      hist.stack.length = hist.i + 1; hist.stack.push(j);
+      if (hist.stack.length > 100) hist.stack.shift();
+      hist.i = hist.stack.length - 1;
+    }
+  }
+  $('undo').disabled = hist.i <= 0; $('redo').disabled = hist.i >= hist.stack.length - 1;
+}
+function step(d) {
+  const k = hist.i + d; if (k < 0 || k >= hist.stack.length) return;
+  clearTimeout(timer); // drop a pending debounced render from typing
+  hist.i = k; hist.busy = true; applyConfig(JSON.parse(hist.stack[k])); render(); hist.busy = false;
+}
+$('undo').onclick = () => step(-1);
+$('redo').onclick = () => step(1);
+addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.target.matches('textarea, input[type=text]')) return; // text fields keep native undo
+  const k = e.key.toLowerCase();
+  if (k === 'z') { e.preventDefault(); step(e.shiftKey ? 1 : -1); }
+  else if (k === 'y') { e.preventDefault(); step(1); }
+});
+
+// ---- persistence: last config in localStorage + cookie, named templates in localStorage ----
+function applyConfig(c) {
+  for (const id of ids) if (id in c) $(id)[$(id).type === 'checkbox' ? 'checked' : 'value'] = c[id];
+  for (const k in segs) if (c[k] != null && document.querySelector(`.seg[data-key="${k}"] [data-v="${c[k]}"]`)) setSeg(k, c[k]);
+}
+function saveLast(c) {
+  const json = JSON.stringify(c);
+  try { localStorage.setItem(KEY, json); } catch {}
+  // ponytail: cookies cap at ~4 KB, so a long manual list only lives in localStorage
+  const v = encodeURIComponent(json);
+  try { if (v.length < 3900) document.cookie = `${KEY}=${v}; max-age=31536000; path=/; SameSite=Lax`; } catch {}
+}
+function loadLast() {
+  try { const j = localStorage.getItem(KEY); if (j) return JSON.parse(j); } catch {}
+  try { const m = document.cookie.match(/(?:^|; )labelmaker=([^;]*)/); if (m) return JSON.parse(decodeURIComponent(m[1])); } catch {}
+  return {};
+}
+function getTpls() { try { return JSON.parse(localStorage.getItem(TPL_KEY)) || {}; } catch { return {}; } }
+function setTpls(o) { try { localStorage.setItem(TPL_KEY, JSON.stringify(o)); } catch {} renderTpls(); }
+function renderTpls() {
+  const o = getTpls(), names = Object.keys(o).sort();
+  $('tplCur').textContent = curTpl ? `→ ${curTpl}` : t('No template loaded yet: asks for a name');
+  $('tplList').innerHTML = names.length ? names.map((n, i) => {
+    const c = o[n], paper = { '210x297': 'A4', '297x420': 'A3', '148x210': 'A5', '215.9x279.4': 'Letter' }[c.paper] || `${c.pw}×${c.ph}`;
+    return `<div class="tpl-row${n === curTpl ? ' cur' : ''}"><button data-load="${i}" title="${t('Load')}">${esc(n)}<small>${c.lw}×${c.lh} mm · ${paper}</small></button><button data-del="${i}" title="${t('Delete template')}">✕</button></div>`;
+  }).join('') : `<div class="tpl-empty">${t('No templates yet')}</div>`;
+  $('tplList').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const n = names[b.dataset.load ?? b.dataset.del];
+    if (b.dataset.load != null) { curTpl = n; applyConfig(o[n]); lastSize = ''; render(); renderTpls(); b.closest('details').open = false; }
+    else ask({ title: t('Delete template'), msg: `"${n}"`, ok: t('Delete'), danger: true }).then(y => { if (y) { delete o[n]; if (n === curTpl) curTpl = ''; setTpls(o); } });
+  };
+}
+$('tplSave').onclick = async () => {
+  $('tplSave').closest('details').open = false;
+  const name = await ask({ title: t('Save template'), msg: t('Template name'), input: true, value: `${read().lw}×${read().lh}`, ok: t('Save') });
+  if (!name) return;
+  const o = getTpls();
+  if (o[name] && !await ask({ title: t('Replace existing template'), msg: `"${name}"`, ok: t('Replace') })) return;
+  o[name] = read(); curTpl = name; setTpls(o); render(); toast(`${t('Saved')} · ${name}`);
+};
+function quickSave() {
+  $('tplQuick').closest('details').open = false;
+  const o = getTpls();
+  if (!curTpl || !o[curTpl]) return $('tplSave').click(); // nothing loaded yet -> Save as
+  o[curTpl] = read(); setTpls(o); toast(`${t('Saved')} · ${curTpl}`);
+}
+$('tplQuick').onclick = quickSave;
+addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !$('dlg').open) { e.preventDefault(); quickSave(); } });
+// share link: settings packed into the URL hash (never sent to a server)
+function b64(str) { const u = new TextEncoder().encode(str); let r = ''; for (const x of u) r += String.fromCharCode(x); return btoa(r).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64(str) { return new TextDecoder().decode(Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0))); }
+console.assert(unb64(b64('ทดสอบ A-001')) === 'ทดสอบ A-001');
+$('tplShare').onclick = async () => {
+  $('tplShare').closest('details').open = false;
+  const url = location.href.split('#')[0] + '#c=' + b64(JSON.stringify(read()));
+  try { await navigator.clipboard.writeText(url); toast(t('Link copied')); }
+  catch { ask({ title: t('Copy share link'), input: true, value: url, cancel: false }); }
+};
+$('tplExport').onclick = () => download(JSON.stringify(getTpls(), null, 2), 'application/json', 'label-templates.json');
+$('tplImport').onclick = () => $('tplFile').click();
+$('tplFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const o = JSON.parse(await f.text());
+    if (!o || typeof o !== 'object' || Array.isArray(o)) throw 0;
+    setTpls({ ...getTpls(), ...o });
+    toast(t('Imported'));
+  } catch { ask({ title: t('Invalid template file'), cancel: false }); }
+};
+// ---- dialog / toast ----
+function ask({ title, msg = '', input = false, value = '', ok = t('OK'), danger = false, cancel = true }) {
+  return new Promise(res => {
+    const d = $('dlg'), inp = $('dlgInput');
+    $('dlgTitle').textContent = title;
+    $('dlgMsg').textContent = msg; $('dlgMsg').hidden = !msg;
+    inp.hidden = !input; inp.value = value;
+    $('dlgOk').textContent = ok; $('dlgOk').classList.toggle('danger', danger); $('dlgOk').classList.toggle('primary', !danger);
+    $('dlgCancel').textContent = t('Cancel'); $('dlgCancel').hidden = !cancel;
+    d.returnValue = '';
+    d.onclose = () => res(d.returnValue === 'ok' ? (input ? inp.value.trim() : true) : null);
+    d.showModal();
+    if (input) { inp.focus(); inp.select(); } else $('dlgOk').focus();
+  });
+}
+$('dlg').addEventListener('click', e => { if (e.target === $('dlg')) $('dlg').close(); }); // click backdrop = cancel
+let toastT;
+function toast(msg) { $('toast').textContent = msg; $('toast').classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('show'), 2200); }
+
+$('csvBtn').onclick = () => $('csvFile').click();
+$('csvFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  // ponytail: plain split, no quoted-comma CSV parsing; paste from Excel (Tab) when cells contain commas
+  $('list').value = (await f.text()).replace(/^\uFEFF/, '').trim(); render();
+};
+$('wireCalc').onclick = () => {
+  const s = read(), c = Math.PI * s.wireD;
+  if (s.mode === 'flag') $('wrapmm').value = Math.ceil(c * 2) / 2;
+  else $('lw').value = Math.ceil((c + s.overlap) * 2) / 2; // round up to 0.5 mm
+  render();
+};
+
+// close dropdown menus on outside click
+document.addEventListener('click', e => document.querySelectorAll('details.menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
+$('themeBtn').onclick = () => { theme = theme === 'dark' ? 'light' : 'dark'; applyTheme(); render(); };
+applyTheme();
+applyLang();
+renderTpls();
+render();
+document.fonts.ready.then(render); // re-fit once web fonts arrive
+</script>
+</body>
+</html>
