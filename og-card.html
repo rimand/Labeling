@@ -1,0 +1,58 @@
+<!doctype html>
+<!-- Source for og.png (1200×630 social preview). Regenerate:
+     chrome --headless --hide-scrollbars --window-size=1200,630 --virtual-time-budget=5000 --screenshot=og.png og-card.html -->
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=Kanit:wght@600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; font-family: "IBM Plex Sans Thai", sans-serif; color: #e6e8ec;
+    background: #0f1114 radial-gradient(#262a31 1.5px, transparent 1.5px) 0 0 / 24px 24px; position: relative; }
+  .glow { position: absolute; width: 700px; height: 700px; right: -120px; top: -160px; background: radial-gradient(#f59e0b33, transparent 65%); }
+  .left { position: absolute; left: 72px; top: 0; bottom: 0; width: 540px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  .brand { display: flex; align-items: center; gap: 16px; font-size: 26px; font-weight: 600; color: #fbbf4a; }
+  .brand svg { width: 56px; height: 56px; }
+  h1 { font-size: 66px; line-height: 1.02; font-weight: 700; letter-spacing: -1.5px; color: #fff; }
+  h1 span { color: #f59e0b; }
+  .th { font-size: 25px; color: #9aa1ad; line-height: 1.4; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .chip { padding: 7px 16px; border-radius: 99px; background: #1f2229; border: 1px solid #363b45; font-size: 18px; color: #c9ced6; }
+  .url { font-size: 20px; color: #6b7382; margin-top: 4px; }
+
+  .sheet { position: absolute; right: 70px; top: 70px; width: 470px; height: 560px; background: #fff; border-radius: 6px;
+    transform: rotate(4deg); box-shadow: 0 30px 80px #000a; padding: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
+  .lbl { height: 62px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font: 600 24px Kanit, sans-serif; color: #fff; }
+  .wide { grid-column: span 2; }
+  .flag { grid-column: span 2; height: 62px; display: flex; border: 1.5px dashed #e33; border-radius: 8px; color: #111; font: 600 22px Kanit, sans-serif; }
+  .flag div { flex: 1; display: flex; align-items: center; padding: 0 14px; }
+  .flag div:last-child { justify-content: flex-end; }
+  .flag .z { flex: 0 0 60px; background: repeating-linear-gradient(45deg, #fff 0 5px, #eee 5px 10px); border-inline: 1.5px dashed #bbb; position: relative; }
+  .flag .z::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1.5px dashed #888; }
+  .qr { grid-column: span 2; height: 110px; border: 1.5px dashed #e33; border-radius: 8px; display: flex; align-items: center; gap: 18px; padding: 0 16px; color: #111; }
+  .qr svg { width: 84px; height: 84px; }
+  .qr b { font: 600 30px Kanit, sans-serif; display: block; }
+  .qr small { font-size: 16px; color: #6b7382; }
+  .bc { grid-column: span 2; height: 50px; border: 1.5px dashed #e33; border-radius: 8px; background: repeating-linear-gradient(90deg, #111 0 2px, #fff 2px 4px, #111 4px 7px, #fff 7px 9px, #111 9px 10px, #fff 10px 13px); background-clip: content-box; padding: 9px 18px; }
+</style></head><body>
+<div class="glow"></div>
+<div class="left">
+  <div class="brand"><svg viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#f59e0b"/><rect x="6" y="9" width="16" height="10" rx="2" fill="#fff"/><path d="M9 13h10M9 16h6" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round"/></svg>Label Maker</div>
+  <h1>Print-ready labels<br><span>in seconds.</span></h1>
+  <div class="th">ทำ Label ลงกระดาษ A4 / A3 · Label สายไฟ<br>วิ่งเลขอัตโนมัติ · QR / Barcode · ไดคัท</div>
+  <div class="chips"><span class="chip">A-001 → A-100</span><span class="chip">Wire labels</span><span class="chip">QR · Barcode</span><span class="chip">Silhouette Cameo</span></div>
+  <div class="url">rimand.github.io/Labeling · free, no install</div>
+</div>
+<div class="sheet">
+  <div class="lbl" style="background:#7a4a25">L1</div><div class="lbl" style="background:#141414">L2</div>
+  <div class="lbl" style="background:#8a8f98">L3</div><div class="lbl" style="background:#1f5fbf">N</div>
+  <div class="lbl wide" style="background:repeating-linear-gradient(45deg,#2e9d3a 0 18px,#f2d21b 18px 36px);color:#111">PE</div>
+  <div class="flag"><div>A-001-01</div><div class="z"></div><div>A-001-01</div></div>
+  <div class="flag"><div>A-001-02</div><div class="z"></div><div>A-001-02</div></div>
+  <div class="qr" id="qr"><div><b>MDB-1 · A-001</b><small>Panel A · Floor 2</small></div></div>
+  <div class="bc"></div>
+</div>
+<script>
+  const q = qrcode(0, 'M'); q.addData('https://rimand.github.io/Labeling/'); q.make();
+  document.getElementById('qr').insertAdjacentHTML('afterbegin', q.createSvgTag({ cellSize: 1, margin: 0, scalable: true }));
+</script>
+</body></html>
