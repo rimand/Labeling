@@ -171,7 +171,7 @@
   .reg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .bleed { position: absolute; }
   .lbl { position: absolute; display: flex; overflow: hidden; }
-  .lbl.cut { outline: 0.2mm dashed #e33; }
+  .lbl.cut { outline: var(--cutw, 0.2mm) var(--cuts, dashed) var(--cutc, #e33); }
   .lbl.guide::after { content: ''; position: absolute; inset: var(--pad); outline: 0.15mm dotted #39f; pointer-events: none; }
   .cell { flex: 1; display: flex; min-width: 0; min-height: 0; }
   .piece { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; }
@@ -369,6 +369,14 @@
     <div class="f"><span data-t>Cut line</span><div class="seg" data-key="cut">
       <button data-v="screen" class="on" data-t>Screen</button><button data-v="print" data-t>Print</button><button data-v="none" data-t>Off</button>
     </div></div>
+    <div class="f" id="cutStyleRow"><span data-t>Line style</span><div class="ctl" style="flex-wrap:nowrap">
+      <input type="color" id="cutColor" value="#ee3333" title="Colour">
+      <div class="seg" data-key="cutStyle" style="flex:1;width:auto">
+        <button data-v="dashed" class="on" title="Dashed"><svg viewBox="0 0 24 16" stroke="currentColor" stroke-width="2"><path d="M1 8h22" stroke-dasharray="5 3"/></svg></button>
+        <button data-v="dotted" title="Dotted"><svg viewBox="0 0 24 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8h21" stroke-dasharray="0 4"/></svg></button>
+        <button data-v="solid" title="Solid"><svg viewBox="0 0 24 16" stroke="currentColor" stroke-width="2"><path d="M1 8h22"/></svg></button>
+      </div>
+      <span class="num" style="max-width:84px;min-width:70px"><input type="number" id="cutWidth" value="0.2" step="0.05" min="0.05" title="Thickness"><em>mm</em></span></div></div>
     <div class="f"><span data-t>Corner radius</span><div class="ctl"><span class="num"><input type="number" id="radius" value="0" step="0.5" min="0"><em>mm</em></span></div></div>
     <div class="f"><span data-t>Background</span><div class="ctl">
       <label class="check"><input type="checkbox" id="bgOn"></label><input type="color" id="bg" value="#ffe066">
@@ -437,7 +445,7 @@ const hist = { stack: [], i: -1, busy: false }; // undo/redo snapshots of read()
 let curTpl = ''; // template that Save overwrites
 let lastSize = ''; // refit the view when paper size changes
 const MAX = 10000; // ponytail: hard cap so a typo range doesn't hang the tab
-const ids = ['paper','pw','ph','mt','ml','lw','lh','gx','gy','pad','reps','wrapmm','radius','bgOn','bg','bleed','reg','sLen','sThick','sInset',
+const ids = ['paper','pw','ph','mt','ml','lw','lh','gx','gy','pad','reps','wrapmm','radius','cutColor','cutWidth','bgOn','bg','bleed','reg','sLen','sThick','sInset',
   'from','to','list','tpl','tplB','mirror','header','step','phase','offX','offY','scaleP','wireD','overlap','copies','skip','code','codeTpl','csize','font','fs','fit','bold','italic','color'];
 
 // ---- i18n: English text in the HTML is the key (or data-t="key" for long blocks) ----
@@ -457,7 +465,7 @@ const TH = {
   'Left': 'ซ้าย', 'Right': 'ขวา', 'Top': 'บน', 'Bottom': 'ล่าง', 'Only': 'โค้ดล้วน', 'Code size': 'ขนาดโค้ด',
   'Text style': 'รูปแบบข้อความ', 'Font': 'Font', 'Shrink to fit': 'ย่อให้พอดี', 'Style': 'สไตล์', 'Horizontal': 'แนวนอน', 'Vertical': 'แนวตั้ง', 'Rotation': 'หมุน',
   'Die-cut &amp; marks': 'Die-cut และ Reg marks', 'Cut line': 'เส้นตัด', 'Screen': 'บนจอ', 'Print': 'พิมพ์', 'Off': 'ปิด',
-  'Corner radius': 'มุมโค้ง', 'Background': 'สีพื้น', 'bleed': 'bleed', 'Reg marks': 'Reg marks', 'Crosshair · print shop': 'กากบาท · ร้านพิมพ์',
+  'Line style': 'รูปแบบเส้น', 'Corner radius': 'มุมโค้ง', 'Background': 'สีพื้น', 'bleed': 'bleed', 'Reg marks': 'Reg marks', 'Crosshair · print shop': 'กากบาท · ร้านพิมพ์',
   'Mark length': 'ความยาว mark', 'Thickness': 'ความหนา', 'Inset': 'ระยะจากขอบ',
   'Must match Silhouette Studio → Registration Marks exactly.': 'ต้องตั้งให้ตรงกับ Silhouette Studio → Registration Marks ทุกค่า',
   'Apply die-cut defaults': 'ใช้ค่ามาตรฐาน die-cut', 'Die-cut spacing guide': 'คู่มือระยะ die-cut', 'Silhouette Cameo 4 workflow': 'ขั้นตอน Silhouette Cameo 4',
@@ -732,6 +740,7 @@ function render() {
   document.querySelectorAll('.m-flag').forEach(e => e.hidden = s.mode !== 'flag');
   $('codeOpts').hidden = s.code === 'none';
   $('silOpts').hidden = s.reg !== 'silhouette';
+  $('cutStyleRow').hidden = s.cut === 'none';
   $('src-range').hidden = s.src !== 'range';
   $('src-list').hidden = s.src !== 'list';
   document.querySelectorAll('.m-wire').forEach(e => e.hidden = s.mode === 'normal');
@@ -766,7 +775,7 @@ function render() {
   badCodes = 0;
   let html = '';
   for (let p = 0; p * L.per < Math.max(items.length, 1); p++) {
-    html += `<div class="page" style="width:${L.pw}mm;height:${L.ph}mm;${font}"><div class="cal" style="transform:translate(${s.offX}mm,${s.offY}mm) scale(${s.scaleP / 100})">${reg}`;
+    html += `<div class="page" style="width:${L.pw}mm;height:${L.ph}mm;${font};--cutc:${s.cutColor};--cuts:${s.cutStyle};--cutw:${s.cutWidth}mm"><div class="cal" style="transform:translate(${s.offX}mm,${s.offY}mm) scale(${s.scaleP / 100})">${reg}`;
     for (let i = 0; i < L.per; i++) {
       const v = items[p * L.per + i];
       if (v == null) continue;
