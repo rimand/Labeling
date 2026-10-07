@@ -176,7 +176,7 @@
   .reg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .bleed { position: absolute; }
   .lbl { position: absolute; display: flex; overflow: hidden; }
-  .lbl.cut { outline: var(--cutw, 0.2mm) var(--cuts, dashed) var(--cutc, #e33); }
+  .lbl.cut { outline: var(--cutw, 0.2mm) var(--cuts, dashed) var(--cutc, #e33); outline-offset: calc(var(--cutw, 0.2mm) / -2); } /* centre the line on the true cut edge, same as the exported die-line */
   .lbl.guide::after { content: ''; position: absolute; inset: var(--pad); outline: 0.15mm dotted #39f; pointer-events: none; }
   .cell { flex: 1; display: flex; min-width: 0; min-height: 0; }
   .piece { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; }
